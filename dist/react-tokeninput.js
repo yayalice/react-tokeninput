@@ -69,11 +69,11 @@ return /******/ (function(modules) { // webpackBootstrap
 	
 	var _option2 = _interopRequireDefault(_option);
 	
-	var _token = __webpack_require__(5);
+	var _token = __webpack_require__(9);
 	
 	var _token2 = _interopRequireDefault(_token);
 	
-	var _main = __webpack_require__(6);
+	var _main = __webpack_require__(10);
 	
 	var _main2 = _interopRequireDefault(_main);
 	
@@ -141,7 +141,12 @@ return /******/ (function(modules) { // webpackBootstrap
 	    /**
 	     * Shown when the combobox is empty.
 	    */
-	    placeholder: React.PropTypes.string
+	    placeholder: React.PropTypes.string,
+	
+	    /**
+	     * If true, hides the menu when option is selected
+	    */
+	    hideMenuOnSelect: React.PropTypes.bool
 	  },
 	
 	  getDefaultProps: function getDefaultProps() {
@@ -150,7 +155,8 @@ return /******/ (function(modules) { // webpackBootstrap
 	      onInput: k,
 	      onSelect: k,
 	      value: null,
-	      showListOnFocus: false
+	      showListOnFocus: false,
+	      hideMenuOnSelect: true
 	    };
 	  },
 	
@@ -180,7 +186,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	
 	  componentWillReceiveProps: function componentWillReceiveProps(newProps) {
 	    this.setState({ menu: this.makeMenu(newProps.children) }, function () {
-	      if (newProps.children.length && (this.isOpen || document.activeElement === this.refs.input)) {
+	      if (newProps.children.length && (this.state.isOpen || document.activeElement === this.refs.input)) {
 	        if (!this.state.menu.children.length) {
 	          return;
 	        }
@@ -387,19 +393,26 @@ return /******/ (function(modules) { // webpackBootstrap
 	    }
 	  },
 	
-	  selectOption: function selectOption(child, options) {
-	    options = options || {};
+	  selectOption: function selectOption(child, optionsOrEvent) {
+	    if (optionsOrEvent && optionsOrEvent.stopPropagation) {
+	      optionsOrEvent.stopPropagation();
+	    }
+	    optionsOrEvent = optionsOrEvent || {};
 	    this.setState({
 	      // value: child.props.value,
 	      // inputValue: getLabel(child),
 	      matchedAutocompleteOption: null
 	    }, function () {
 	      this.props.onSelect(child.props.value, child);
-	      this.hideList();
-	      this.clearSelectedState(); // added
-	      if (options.focus !== false) this.selectInput();
+	      if (this.props.hideMenuOnSelect) {
+	        this.hideList();
+	        this.clearSelectedState(); // added
+	        if (optionsOrEvent.focus !== false) this.selectInput();
+	      }
 	    }.bind(this));
-	    this.refs.input.value = ''; // added
+	    if (this.props.hideMenuOnSelect) {
+	      this.refs.input.value = ''; // added
+	    }
 	  },
 	
 	  selectText: function selectText() {
@@ -545,6 +558,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	var React = __webpack_require__(2);
 	var addClass = __webpack_require__(3);
 	var div = React.createFactory('div');
+	var omit = __webpack_require__(5);
 	
 	module.exports = React.createClass({
 	  displayName: 'exports',
@@ -580,13 +594,125 @@ return /******/ (function(modules) { // webpackBootstrap
 	      props.className = addClass(props.className, 'ic-tokeninput-selected');
 	      props.ariaSelected = true;
 	    }
-	    return div(props);
+	    return div(omit(props, 'isSelected'));
 	  }
 	
 	});
 
 /***/ },
 /* 5 */
+/***/ function(module, exports, __webpack_require__) {
+
+	/*!
+	 * object.omit <https://github.com/jonschlinkert/object.omit>
+	 *
+	 * Copyright (c) 2014-2015, Jon Schlinkert.
+	 * Licensed under the MIT License.
+	 */
+	
+	'use strict';
+	
+	var isObject = __webpack_require__(6);
+	var forOwn = __webpack_require__(7);
+	
+	module.exports = function omit(obj, keys) {
+	  if (!isObject(obj)) return {};
+	
+	  keys = [].concat.apply([], [].slice.call(arguments, 1));
+	  var last = keys[keys.length - 1];
+	  var res = {}, fn;
+	
+	  if (typeof last === 'function') {
+	    fn = keys.pop();
+	  }
+	
+	  var isFunction = typeof fn === 'function';
+	  if (!keys.length && !isFunction) {
+	    return obj;
+	  }
+	
+	  forOwn(obj, function(value, key) {
+	    if (keys.indexOf(key) === -1) {
+	
+	      if (!isFunction) {
+	        res[key] = value;
+	      } else if (fn(value, key, obj)) {
+	        res[key] = value;
+	      }
+	    }
+	  });
+	  return res;
+	};
+
+
+/***/ },
+/* 6 */
+/***/ function(module, exports) {
+
+	/*!
+	 * is-extendable <https://github.com/jonschlinkert/is-extendable>
+	 *
+	 * Copyright (c) 2015, Jon Schlinkert.
+	 * Licensed under the MIT License.
+	 */
+	
+	'use strict';
+	
+	module.exports = function isExtendable(val) {
+	  return typeof val !== 'undefined' && val !== null
+	    && (typeof val === 'object' || typeof val === 'function');
+	};
+
+
+/***/ },
+/* 7 */
+/***/ function(module, exports, __webpack_require__) {
+
+	/*!
+	 * for-own <https://github.com/jonschlinkert/for-own>
+	 *
+	 * Copyright (c) 2014-2016, Jon Schlinkert.
+	 * Licensed under the MIT License.
+	 */
+	
+	'use strict';
+	
+	var forIn = __webpack_require__(8);
+	var hasOwn = Object.prototype.hasOwnProperty;
+	
+	module.exports = function forOwn(o, fn, thisArg) {
+	  forIn(o, function(val, key) {
+	    if (hasOwn.call(o, key)) {
+	      return fn.call(thisArg, o[key], key, o);
+	    }
+	  });
+	};
+
+
+/***/ },
+/* 8 */
+/***/ function(module, exports) {
+
+	/*!
+	 * for-in <https://github.com/jonschlinkert/for-in>
+	 *
+	 * Copyright (c) 2014-2016, Jon Schlinkert.
+	 * Licensed under the MIT License.
+	 */
+	
+	'use strict';
+	
+	module.exports = function forIn(o, fn, thisArg) {
+	  for (var key in o) {
+	    if (fn.call(thisArg, o[key], key, o) === false) {
+	      break;
+	    }
+	  }
+	};
+
+
+/***/ },
+/* 9 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -626,15 +752,15 @@ return /******/ (function(modules) { // webpackBootstrap
 	});
 
 /***/ },
-/* 6 */
+/* 10 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 	
 	var React = __webpack_require__(2);
 	var Combobox = React.createFactory(__webpack_require__(1));
-	var Token = React.createFactory(__webpack_require__(5));
-	var classnames = __webpack_require__(7);
+	var Token = React.createFactory(__webpack_require__(9));
+	var classnames = __webpack_require__(11);
 	
 	var ul = React.DOM.ul;
 	var li = React.DOM.li;
@@ -652,7 +778,8 @@ return /******/ (function(modules) { // webpackBootstrap
 	    selected: React.PropTypes.array.isRequired,
 	    menuContent: React.PropTypes.any,
 	    showListOnFocus: React.PropTypes.bool,
-	    placeholder: React.PropTypes.string
+	    placeholder: React.PropTypes.string,
+	    hideMenuOnSelect: React.PropTypes.bool
 	  },
 	
 	  getInitialState: function getInitialState() {
@@ -714,13 +841,14 @@ return /******/ (function(modules) { // webpackBootstrap
 	      onRemoveLast: this.handleRemoveLast,
 	      value: this.state.selectedToken,
 	      isDisabled: isDisabled,
-	      placeholder: this.props.placeholder
+	      placeholder: this.props.placeholder,
+	      hideMenuOnSelect: this.props.hideMenuOnSelect
 	    }, this.props.menuContent)), this.props.isLoading && li({ className: 'ic-tokeninput-loading flex' }, this.props.loadingComponent));
 	  }
 	});
 
 /***/ },
-/* 7 */
+/* 11 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;/*!
